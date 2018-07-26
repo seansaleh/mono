@@ -41,10 +41,6 @@ namespace System.Security.Cryptography.X509Certificates
 			get;
 		}
 
-		public abstract bool HasPrivateKey {
-			get;
-		}
-
 		public abstract string FriendlyName {
 			get; set;
 		}
@@ -56,10 +52,6 @@ namespace System.Security.Cryptography.X509Certificates
 		public abstract AsymmetricAlgorithm PrivateKey {
 			get; set;
 		}
-
-		public abstract RSA GetRSAPrivateKey ();
-
-		public abstract DSA GetDSAPrivateKey ();
 
 		public abstract PublicKey PublicKey {
 			get;
