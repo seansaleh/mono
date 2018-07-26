@@ -72,37 +72,35 @@ namespace System.Security.Cryptography.X509Certificates
 			}
 		}
 
-		public override string KeyAlgorithm {
+		public sealed override string KeyAlgorithm {
 			get {
 				EnsureCertData ();
 				return certData.PublicKeyAlgorithm.AlgorithmId;
 			}
 		}
 
-		public override byte[] KeyAlgorithmParameters {
+		public sealed override byte[] KeyAlgorithmParameters {
 			get {
 				EnsureCertData ();
 				return certData.PublicKeyAlgorithm.Parameters;
 			}
 		}
 
-		public override byte[] PublicKeyValue {
+		public sealed override byte[] PublicKeyValue {
 			get {
 				EnsureCertData ();
 				return certData.PublicKey;
 			}
 		}
 
-		public override byte[] SerialNumber {
+		public sealed override byte[] SerialNumber {
 			get {
 				EnsureCertData ();
-				byte[] serial = certData.SerialNumber;
-				Array.Reverse (serial);
-				return serial;
+				return certData.SerialNumber;
 			}
 		}
 
-		public override string SignatureAlgorithm {
+		public sealed override string SignatureAlgorithm {
 			get {
 				EnsureCertData ();
 				return certData.SignatureAlgorithm.AlgorithmId;
@@ -117,21 +115,21 @@ namespace System.Security.Cryptography.X509Certificates
 			}
 		}
 
-		public override int Version {
+		public sealed override int Version {
 			get {
 				EnsureCertData ();
 				return certData.Version + 1;
 			}
 		}
 
-		public override X500DistinguishedName SubjectName {
+		public sealed override X500DistinguishedName SubjectName {
 			get {
 				EnsureCertData ();
 				return certData.Subject;
 			}
 		}
 
-		public override X500DistinguishedName IssuerName {
+		public sealed override X500DistinguishedName IssuerName {
 			get {
 				EnsureCertData ();
 				return certData.Issuer;
@@ -146,14 +144,14 @@ namespace System.Security.Cryptography.X509Certificates
 
 		public sealed override string LegacyIssuer => IssuerName.Decode (X500DistinguishedNameFlags.None);
 
-		public override byte[] RawData {
+		public sealed override byte[] RawData {
 			get {
 				EnsureCertData ();
 				return certData.RawData;
 			}
 		}
 
-		public override byte[] Thumbprint {
+		public sealed override byte[] Thumbprint {
 			get {
 				EnsureCertData ();
 
@@ -176,14 +174,14 @@ namespace System.Security.Cryptography.X509Certificates
 			}
 		}
 
-		public override DateTime NotAfter {
+		public sealed override DateTime NotAfter {
 			get {
 				EnsureCertData ();
 				return certData.NotAfter.ToLocalTime ();
 			}
 		}
 
-		public override DateTime NotBefore {
+		public sealed override DateTime NotBefore {
 			get {
 				EnsureCertData ();
 				return certData.NotBefore.ToLocalTime ();
@@ -213,27 +211,17 @@ namespace System.Security.Cryptography.X509Certificates
 			Debug.Assert (password != null);
 			switch (contentType) {
 			case X509ContentType.Cert:
-				return ExportX509Der ();
+				return RawData;
 			case X509ContentType.Pkcs12:
 				return ExportPkcs12 (password);
 			case X509ContentType.Pkcs7:
-				return ExportPkcs7 ();
+				return ExportPkcs12 ((string)null);
 			case X509ContentType.SerializedCert:
 			case X509ContentType.SerializedStore:
 				throw new PlatformNotSupportedException (SR.Cryptography_Unix_X509_SerializedExport);
 			default:
 				throw new CryptographicException (SR.Cryptography_X509_InvalidContentType);
 			}
-		}
-
-		protected virtual byte[] ExportX509Der ()
-		{
-			return RawData;
-		}
-
-		protected virtual byte[] ExportPkcs7 ()
-		{
-			return ExportPkcs12 ((string)null);
 		}
 
 		byte[] ExportPkcs12 (SafePasswordHandle password)

@@ -52,9 +52,6 @@ namespace System.Security.Cryptography.X509Certificates
 	internal class X509Certificate2ImplMono : X509Certificate2ImplUnix
 	{
 		PublicKey _publicKey;
-		X500DistinguishedName issuer_name;
-		X500DistinguishedName subject_name;
-		Oid signature_algorithm;
 		X509CertificateImplCollection intermediateCerts;
 
 		MX.X509Certificate _cert;
@@ -128,40 +125,11 @@ namespace System.Security.Cryptography.X509Certificates
 			return Cert.RawData;
 		}
 
-		public override byte[] RawData => Cert.RawData;
-
-		public override byte[] Thumbprint {
-			get {
-				ThrowIfContextInvalid ();
-				SHA1 sha = SHA1.Create ();
-				return sha.ComputeHash (_cert.RawData);
-			}
-		}
-
-		public override DateTime NotBefore => Cert.ValidFrom.ToLocalTime ();
-
-		public override DateTime NotAfter => Cert.ValidUntil.ToLocalTime ();
-
 		public override bool Equals (X509CertificateImpl other, out bool result)
 		{
 			// Use default implementation
 			result = false;
 			return false;
-		}
-
-		public override string KeyAlgorithm => Cert.KeyAlgorithm;
-
-		public override byte[] KeyAlgorithmParameters => Cert.KeyAlgorithmParameters ?? throw new CryptographicException ();
-
-		public override byte[] PublicKeyValue => Cert.PublicKey;
-
-		public override byte[] SerialNumber {
-			get {
-				ThrowIfContextInvalid ();
-				var serial = Cert.SerialNumber;
-				Array.Reverse (serial);
-				return serial;
-			}
 		}
 
 #endregion
@@ -178,16 +146,6 @@ namespace System.Security.Cryptography.X509Certificates
 		// FIXME - Could be more efficient
 		public override bool HasPrivateKey {
 			get { return PrivateKey != null; }
-		}
-
-		public override X500DistinguishedName IssuerName {
-			get {
-				if (_cert == null)
-					throw new CryptographicException (empty_error);
-				if (issuer_name == null)
-					issuer_name = new X500DistinguishedName (_cert.GetIssuerName ().GetBytes ());
-				return issuer_name;
-			}
 		}
 
 		public override AsymmetricAlgorithm PrivateKey {
@@ -265,36 +223,6 @@ namespace System.Security.Cryptography.X509Certificates
 			}
 		}
 
-		public override string SignatureAlgorithm {
-			get {
-				if (_cert == null)
-					throw new CryptographicException (empty_error);
-
-				if (signature_algorithm == null)
-					signature_algorithm = new Oid (_cert.SignatureAlgorithm);
-				return signature_algorithm.Value;
-			}
-		}
-
-		public override X500DistinguishedName SubjectName {
-			get {
-				if (_cert == null)
-					throw new CryptographicException (empty_error);
-
-				if (subject_name == null)
-					subject_name = new X500DistinguishedName (_cert.GetSubjectName ().GetBytes ());
-				return subject_name;
-			}
-		}
-
-		public override int Version {
-			get {
-				if (_cert == null)
-					throw new CryptographicException (empty_error);
-				return _cert.Version;
-			}
-		}
-
 		// methods
 
 		MX.X509Certificate ImportPkcs12 (byte[] rawData, SafePasswordHandle password)
@@ -361,9 +289,6 @@ namespace System.Security.Cryptography.X509Certificates
 		{
 			_cert = null;
 			_publicKey = null;
-			issuer_name = null;
-			subject_name = null;
-			signature_algorithm = null;
 			if (intermediateCerts != null) {
 				intermediateCerts.Dispose ();
 				intermediateCerts = null;

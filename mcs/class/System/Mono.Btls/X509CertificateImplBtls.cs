@@ -51,8 +51,6 @@ namespace Mono.Btls
 	{
 		MonoBtlsX509 x509;
 		MonoBtlsKey nativePrivateKey;
-		X500DistinguishedName subjectName;
-		X500DistinguishedName issuerName;
 		X509CertificateImplCollection intermediateCerts;
 		PublicKey publicKey;
 		bool disallowFallback;
@@ -175,22 +173,6 @@ namespace Mono.Btls
 			return X509.GetRawData (MonoBtlsX509Format.DER);
 		}
 
-		public override byte[] Thumbprint => X509.GetCertHash ();
-
-		public override byte[] RawData => X509.GetRawData (MonoBtlsX509Format.DER);
-
-		public override DateTime NotBefore => X509.GetNotBefore ().ToLocalTime ();
-
-		public override DateTime NotAfter => X509.GetNotAfter ().ToLocalTime ();
-
-		public override byte[] PublicKeyValue => X509.GetPublicKeyData ();
-
-		public override byte[] SerialNumber => X509.GetSerialNumber (true);
-
-		public override string KeyAlgorithm => PublicKey.Oid.Value;
-
-		public override byte[] KeyAlgorithmParameters => PublicKey.EncodedParameters.RawData;
-
 		internal override X509CertificateImplCollection IntermediateCertificates {
 			get { return intermediateCerts; }
 		}
@@ -227,21 +209,6 @@ namespace Mono.Btls
 
 		public override bool HasPrivateKey {
 			get { return nativePrivateKey != null || FallbackImpl.HasPrivateKey; }
-		}
-
-		public override X500DistinguishedName IssuerName {
-			get {
-				ThrowIfContextInvalid ();
-				if (issuerName == null) {
-					using (var xname = x509.GetIssuerName ()) {
-						var encoding = xname.GetRawData (false);
-						var canonEncoding = xname.GetRawData (true);
-						var name = MonoBtlsUtils.FormatName (xname, true, ", ", true);
-						issuerName = new X500DistinguishedName (encoding, canonEncoding, name);
-					}
-				}
-				return issuerName;
-			}
 		}
 
 		public override AsymmetricAlgorithm PrivateKey {
@@ -282,32 +249,6 @@ namespace Mono.Btls
 				}
 				return publicKey;
 			}
-		}
-
-		public override string SignatureAlgorithm {
-			get {
-				ThrowIfContextInvalid ();
-				return X509.GetSignatureAlgorithm ();
-			}
-		}
-
-		public override X500DistinguishedName SubjectName {
-			get {
-				ThrowIfContextInvalid ();
-				if (subjectName == null) {
-					using (var xname = x509.GetSubjectName ()) {
-						var encoding = xname.GetRawData (false);
-						var canonEncoding = xname.GetRawData (true);
-						var name = MonoBtlsUtils.FormatName (xname, true, ", ", true);
-						subjectName = new X500DistinguishedName (encoding, canonEncoding, name);
-					}
-				}
-				return subjectName;
-			}
-		}
-
-		public override int Version {
-			get { return X509.GetVersion (); }
 		}
 
 		void Import (byte[] data)
@@ -378,8 +319,6 @@ namespace Mono.Btls
 				nativePrivateKey.Dispose ();
 				nativePrivateKey = null;
 			}
-			subjectName = null;
-			issuerName = null;
 			publicKey = null;
 			intermediateCerts = null;
 			if (fallback != null)

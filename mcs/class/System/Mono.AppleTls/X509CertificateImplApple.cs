@@ -70,13 +70,6 @@ namespace Mono.AppleTls
 			}
 		}
 
-		public override byte[] RawData {
-			get {
-				ThrowIfContextInvalid ();
-				return GetRawCertData ();
-			}
-		}
-
 		public string GetSubjectSummary ()
 		{
 			ThrowIfContextInvalid ();
@@ -84,15 +77,6 @@ namespace Mono.AppleTls
 			string ret = CFHelpers.FetchString (cfstr);
 			CFHelpers.CFRelease (cfstr);
 			return ret;
-		}
-
-		public override byte[] Thumbprint {
-			get {
-				// FIXME: might just return 'null' when 'lazy' is true.
-				ThrowIfContextInvalid ();
-				SHA1 sha = SHA1.Create ();
-				return sha.ComputeHash (RawData);
-			}
 		}
 
 		public override bool Equals (X509CertificateImpl other, out bool result)
