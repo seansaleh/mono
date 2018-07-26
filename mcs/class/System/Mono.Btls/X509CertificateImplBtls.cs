@@ -53,39 +53,31 @@ namespace Mono.Btls
 		MonoBtlsKey nativePrivateKey;
 		X509CertificateImplCollection intermediateCerts;
 		PublicKey publicKey;
-		bool disallowFallback;
 
-		internal X509CertificateImplBtls (bool disallowFallback = false)
+		internal X509CertificateImplBtls ()
 		{
-			this.disallowFallback = disallowFallback;
 		}
 
-		internal X509CertificateImplBtls (MonoBtlsX509 x509, bool disallowFallback = false)
+		internal X509CertificateImplBtls (MonoBtlsX509 x509)
 		{
-			this.disallowFallback = disallowFallback;
 			this.x509 = x509.Copy ();
 		}
 
 		X509CertificateImplBtls (X509CertificateImplBtls other)
 		{
-			disallowFallback = other.disallowFallback;
 			x509 = other.x509 != null ? other.x509.Copy () : null;
 			nativePrivateKey = other.nativePrivateKey != null ? other.nativePrivateKey.Copy () : null;
-			fallback = other.fallback != null ? (X509Certificate2Impl)other.fallback.Clone () : null;
 			if (other.intermediateCerts != null)
 				intermediateCerts = other.intermediateCerts.Clone ();
 		}
 
-		internal X509CertificateImplBtls (byte[] data, MonoBtlsX509Format format, bool disallowFallback = false)
+		internal X509CertificateImplBtls (byte[] data, MonoBtlsX509Format format)
 		{
-			this.disallowFallback = disallowFallback;
 			x509 = MonoBtlsX509.LoadFromData (data, format);
 		}
 
-		internal X509CertificateImplBtls (byte[] data, SafePasswordHandle password, X509KeyStorageFlags keyStorageFlags,
-		                                  bool disallowFallback = false)
+		internal X509CertificateImplBtls (byte[] data, SafePasswordHandle password, X509KeyStorageFlags keyStorageFlags)
 		{
-			this.disallowFallback = disallowFallback;
 			if (password == null || password.IsInvalid) {
 				try {
 					Import (data);
@@ -139,12 +131,6 @@ namespace Mono.Btls
 		internal MonoBtlsKey NativePrivateKey {
 			get {
 				ThrowIfContextInvalid ();
-				if (nativePrivateKey == null && FallbackImpl.HasPrivateKey) {
-					var key = FallbackImpl.PrivateKey as RSA;
-					if (key == null)
-						throw new NotSupportedException ("Currently only supports RSA private keys.");
-					nativePrivateKey = MonoBtlsKey.CreateFromRSAPrivateKey (key);
-				}
 				return nativePrivateKey;
 			}
 		}
@@ -187,34 +173,14 @@ namespace Mono.Btls
 
 #region X509Certificate2Impl
 
-		X509Certificate2Impl fallback;
+		internal override X509Certificate2Impl FallbackImpl => throw new InvalidOperationException ();
 
-		void MustFallback ()
-		{
-			if (disallowFallback)
-				throw new InvalidOperationException ();
-			if (fallback != null)
-				return;
-			fallback = SystemDependencyProvider.Instance.CertificateProvider.Import (
-				RawData, null, X509KeyStorageFlags.DefaultKeySet,
-				CertificateImportFlags.DisableNativeBackend);
-		}
-
-		internal override X509Certificate2Impl FallbackImpl {
-			get {
-				MustFallback ();
-				return fallback;
-			}
-		}
-
-		public override bool HasPrivateKey {
-			get { return nativePrivateKey != null || FallbackImpl.HasPrivateKey; }
-		}
+		public override bool HasPrivateKey => nativePrivateKey != null;
 
 		public override AsymmetricAlgorithm PrivateKey {
 			get {
-				if (nativePrivateKey == null || !nativePrivateKey.IsRsa)
-					return FallbackImpl.PrivateKey;
+				if (nativePrivateKey == null)
+					return null;
 				var bytes = nativePrivateKey.GetBytes (true);
 				return PKCS8.PrivateKeyInfo.DecodeRSA (bytes);
 			}
@@ -222,14 +188,13 @@ namespace Mono.Btls
 				if (nativePrivateKey != null)
 					nativePrivateKey.Dispose ();
 				nativePrivateKey = null;
-				FallbackImpl.PrivateKey = value;
 			}
 		}
 
 		public override RSA GetRSAPrivateKey ()
 		{
-			if (nativePrivateKey == null || !nativePrivateKey.IsRsa)
-				return FallbackImpl.GetRSAPrivateKey ();
+			if (nativePrivateKey == null)
+				return null;
 			var bytes = nativePrivateKey.GetBytes (true);
 			return PKCS8.PrivateKeyInfo.DecodeRSA (bytes);
 		}
@@ -287,7 +252,7 @@ namespace Mono.Btls
 						using (var ic = pkcs12.GetCertificate (i)) {
 							if (MonoBtlsX509.Compare (ic, x509) == 0)
 								continue;
-							var impl = new X509CertificateImplBtls (ic, true);
+							var impl = new X509CertificateImplBtls (ic);
 							intermediateCerts.Add (impl, true);
 						}
 					}
@@ -321,8 +286,6 @@ namespace Mono.Btls
 			}
 			publicKey = null;
 			intermediateCerts = null;
-			if (fallback != null)
-				fallback.Reset ();
 		}
 
 #endregion
